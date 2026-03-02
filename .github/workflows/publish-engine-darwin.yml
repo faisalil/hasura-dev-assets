@@ -43,6 +43,15 @@ jobs:
         run: |
           brew update
           brew install pcre unixodbc libpq openssl@3
+          LIBPQ_PREFIX="$(brew --prefix libpq)"
+          ODBC_PREFIX="$(brew --prefix unixodbc)"
+          OPENSSL_PREFIX="$(brew --prefix openssl@3)"
+          echo "${LIBPQ_PREFIX}/bin" >> "${GITHUB_PATH}"
+          echo "PG_CONFIG=${LIBPQ_PREFIX}/bin/pg_config" >> "${GITHUB_ENV}"
+          echo "PKG_CONFIG_PATH=${LIBPQ_PREFIX}/lib/pkgconfig:${ODBC_PREFIX}/lib/pkgconfig:${OPENSSL_PREFIX}/lib/pkgconfig" >> "${GITHUB_ENV}"
+          echo "LDFLAGS=-L${LIBPQ_PREFIX}/lib -L${ODBC_PREFIX}/lib -L${OPENSSL_PREFIX}/lib" >> "${GITHUB_ENV}"
+          echo "CPPFLAGS=-I${LIBPQ_PREFIX}/include -I${ODBC_PREFIX}/include -I${OPENSSL_PREFIX}/include" >> "${GITHUB_ENV}"
+          echo "DYLD_LIBRARY_PATH=${LIBPQ_PREFIX}/lib:${ODBC_PREFIX}/lib:${OPENSSL_PREFIX}/lib" >> "${GITHUB_ENV}"
 
       - name: Prepare build config
         working-directory: graphql-engine-src
