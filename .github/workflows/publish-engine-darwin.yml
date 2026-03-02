@@ -42,7 +42,7 @@ jobs:
       - name: Install build dependencies
         run: |
           brew update
-          brew install pcre unixodbc libpq openssl@3 dylibbundler
+          brew install pcre unixodbc libpq openssl@3
           LIBPQ_PREFIX="$(brew --prefix libpq)"
           ODBC_PREFIX="$(brew --prefix unixodbc)"
           OPENSSL_PREFIX="$(brew --prefix openssl@3)"
@@ -69,16 +69,8 @@ jobs:
         run: |
           ENGINE_BIN="$(cd graphql-engine-src && cabal list-bin exe:graphql-engine --project-file=cabal/dev-sh.project)"
           BUNDLE_DIR="$(pwd)/bundle"
-          rm -rf "${BUNDLE_DIR}"
-          mkdir -p "${BUNDLE_DIR}/lib"
-          cp "${ENGINE_BIN}" "${BUNDLE_DIR}/graphql-engine"
-          chmod +x "${BUNDLE_DIR}/graphql-engine"
-          dylibbundler \
-            -od \
-            -b \
-            -x "${BUNDLE_DIR}/graphql-engine" \
-            -d "${BUNDLE_DIR}/lib" \
-            -p "@executable_path/lib"
+          chmod +x scripts/bundle-macos-binary.sh
+          scripts/bundle-macos-binary.sh "${ENGINE_BIN}" "${BUNDLE_DIR}"
           tar -C "${BUNDLE_DIR}" -czf graphql-engine-darwin-arm64.tar.gz graphql-engine lib
           DARWIN_SHA="$(shasum -a 256 graphql-engine-darwin-arm64.tar.gz | awk '{print $1}')"
           RELEASE_BASE_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}"
