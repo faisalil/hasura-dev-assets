@@ -187,4 +187,10 @@ while [ "${idx}" -lt "${#QUEUE_FILES[@]}" ]; do
   process_binary "${current_file}" "${current_source}"
 done
 
+while IFS= read -r dylib_path; do
+  [ -n "${dylib_path}" ] || continue
+  codesign --force --sign - "${dylib_path}"
+done < <(find "${BUNDLE_DIR}/lib" -type f -name '*.dylib' | sort)
+codesign --force --sign - "${BUNDLE_DIR}/graphql-engine"
+
 echo "bundled ${#PROCESSED_FILES[@]} Mach-O files into ${BUNDLE_DIR}"
