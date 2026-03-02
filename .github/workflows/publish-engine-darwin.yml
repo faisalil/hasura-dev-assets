@@ -63,7 +63,7 @@ jobs:
         working-directory: graphql-engine-src
         run: |
           cabal update
-          cabal build exe:graphql-engine --project-file=cabal/dev-sh.project
+          cabal build exe:graphql-engine --project-file=cabal/dev-sh.project --disable-executable-dynamic
 
       - name: Package artifacts
         run: |
@@ -75,6 +75,10 @@ jobs:
           DARWIN_URL="${RELEASE_BASE_URL}/graphql-engine-darwin-arm64"
           chmod +x scripts/generate-manifest.sh
           scripts/generate-manifest.sh "${RELEASE_TAG}" "${RELEASE_BASE_URL}" "${DARWIN_URL}" "${DARWIN_SHA}"
+
+      - name: Smoke test packaged binary
+        run: |
+          ./graphql-engine-darwin-arm64 version
 
       - name: Create release if missing
         run: |
