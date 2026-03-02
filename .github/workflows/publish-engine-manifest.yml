@@ -8,10 +8,10 @@ on:
         required: true
         default: "v2.48.12"
       darwin_url:
-        description: "URL to graphql-engine-darwin-arm64 binary"
+        description: "URL to graphql-engine-darwin-arm64 asset"
         required: true
       darwin_sha256:
-        description: "SHA256 for graphql-engine-darwin-arm64 binary"
+        description: "SHA256 for graphql-engine-darwin-arm64 asset"
         required: true
 
 permissions:
@@ -31,15 +31,17 @@ jobs:
 
       - name: Validate binary checksum from URL
         run: |
-          curl -fL "${DARWIN_URL}" -o graphql-engine-darwin-arm64
-          ACTUAL_SHA="$(shasum -a 256 graphql-engine-darwin-arm64 | awk '{print $1}')"
+          DARWIN_ASSET_NAME="$(basename "${DARWIN_URL}")"
+          curl -fL "${DARWIN_URL}" -o "${DARWIN_ASSET_NAME}"
+          ACTUAL_SHA="$(shasum -a 256 "${DARWIN_ASSET_NAME}" | awk '{print $1}')"
           test "${ACTUAL_SHA}" = "${DARWIN_SHA256}"
 
       - name: Generate manifest
         run: |
           chmod +x scripts/generate-manifest.sh
           RELEASE_BASE_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}"
-          scripts/generate-manifest.sh "${RELEASE_TAG}" "${RELEASE_BASE_URL}" "${DARWIN_URL}" "${DARWIN_SHA256}"
+          DARWIN_ASSET_NAME="$(basename "${DARWIN_URL}")"
+          scripts/generate-manifest.sh "${RELEASE_TAG}" "${RELEASE_BASE_URL}" "${DARWIN_URL}" "${DARWIN_SHA256}" "${DARWIN_ASSET_NAME}"
           jq . manifest.json >/dev/null
 
       - name: Create release if missing

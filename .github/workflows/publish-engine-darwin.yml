@@ -42,7 +42,7 @@ jobs:
       - name: Install build dependencies
         run: |
           brew update
-          brew install pcre unixodbc libpq openssl@3
+          brew install pcre unixodbc libpq openssl@3 dylibbundler
           LIBPQ_PREFIX="$(brew --prefix libpq)"
           ODBC_PREFIX="$(brew --prefix unixodbc)"
           OPENSSL_PREFIX="$(brew --prefix openssl@3)"
@@ -63,22 +63,37 @@ jobs:
         working-directory: graphql-engine-src
         run: |
           cabal update
-          cabal build exe:graphql-engine --project-file=cabal/dev-sh.project --disable-executable-dynamic
+          cabal build exe:graphql-engine --project-file=cabal/dev-sh.project
 
       - name: Package artifacts
         run: |
           ENGINE_BIN="$(cd graphql-engine-src && cabal list-bin exe:graphql-engine --project-file=cabal/dev-sh.project)"
-          cp "${ENGINE_BIN}" graphql-engine-darwin-arm64
-          chmod +x graphql-engine-darwin-arm64
-          DARWIN_SHA="$(shasum -a 256 graphql-engine-darwin-arm64 | awk '{print $1}')"
+          BUNDLE_DIR="$(pwd)/bundle"
+          rm -rf "${BUNDLE_DIR}"
+          mkdir -p "${BUNDLE_DIR}/lib"
+          cp "${ENGINE_BIN}" "${BUNDLE_DIR}/graphql-engine"
+          chmod +x "${BUNDLE_DIR}/graphql-engine"
+          dylibbundler \
+            -od \
+            -b \
+            -x "${BUNDLE_DIR}/graphql-engine" \
+            -d "${BUNDLE_DIR}/lib" \
+            -p "@executable_path/lib"
+          tar -C "${BUNDLE_DIR}" -czf graphql-engine-darwin-arm64.tar.gz graphql-engine lib
+          DARWIN_SHA="$(shasum -a 256 graphql-engine-darwin-arm64.tar.gz | awk '{print $1}')"
           RELEASE_BASE_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}"
-          DARWIN_URL="${RELEASE_BASE_URL}/graphql-engine-darwin-arm64"
+          DARWIN_ASSET_NAME="graphql-engine-darwin-arm64.tar.gz"
+          DARWIN_URL="${RELEASE_BASE_URL}/${DARWIN_ASSET_NAME}"
           chmod +x scripts/generate-manifest.sh
-          scripts/generate-manifest.sh "${RELEASE_TAG}" "${RELEASE_BASE_URL}" "${DARWIN_URL}" "${DARWIN_SHA}"
+          scripts/generate-manifest.sh "${RELEASE_TAG}" "${RELEASE_BASE_URL}" "${DARWIN_URL}" "${DARWIN_SHA}" "${DARWIN_ASSET_NAME}"
 
       - name: Smoke test packaged binary
         run: |
-          ./graphql-engine-darwin-arm64 version
+          TEST_DIR="/tmp/graphql-engine-bundle-test"
+          rm -rf "${TEST_DIR}"
+          mkdir -p "${TEST_DIR}"
+          tar -xzf graphql-engine-darwin-arm64.tar.gz -C "${TEST_DIR}"
+          env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" "${TEST_DIR}/graphql-engine" version
 
       - name: Create release if missing
         run: |
@@ -92,13 +107,13 @@ jobs:
 
       - name: Upload release assets
         run: |
-          gh release upload "${RELEASE_TAG}" graphql-engine-darwin-arm64 manifest.json checksums.txt --clobber
+          gh release upload "${RELEASE_TAG}" graphql-engine-darwin-arm64.tar.gz manifest.json checksums.txt --clobber
 
       - name: Verify release URLs
         run: |
           BASE_URL="https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}"
           curl -fL "${BASE_URL}/manifest.json" >/dev/null
-          curl -fL "${BASE_URL}/graphql-engine-darwin-arm64" -o /tmp/graphql-engine-darwin-arm64
+          curl -fL "${BASE_URL}/graphql-engine-darwin-arm64.tar.gz" -o /tmp/graphql-engine-darwin-arm64.tar.gz
           EXPECTED="$(awk '{print $1}' checksums.txt)"
-          ACTUAL="$(shasum -a 256 /tmp/graphql-engine-darwin-arm64 | awk '{print $1}')"
+          ACTUAL="$(shasum -a 256 /tmp/graphql-engine-darwin-arm64.tar.gz | awk '{print $1}')"
           test "${EXPECTED}" = "${ACTUAL}"

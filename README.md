@@ -4,7 +4,7 @@ Release assets for Docker-free local Hasura development runtime.
 
 This repository publishes:
 
-- `graphql-engine-darwin-arm64`
+- `graphql-engine-darwin-arm64.tar.gz` (self-contained bundle with `graphql-engine` + dylibs)
 - `manifest.json`
 - `checksums.txt`
 
@@ -21,7 +21,7 @@ The CLI resolves engine binaries from:
   "version": "v2.48.12",
   "assets": {
     "darwin-arm64": {
-      "url": "https://github.com/faisalil/hasura-dev-assets/releases/download/v2.48.12/graphql-engine-darwin-arm64",
+      "url": "https://github.com/faisalil/hasura-dev-assets/releases/download/v2.48.12/graphql-engine-darwin-arm64.tar.gz",
       "sha256": "<sha256>"
     }
   }
